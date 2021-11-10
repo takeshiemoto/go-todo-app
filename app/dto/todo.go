@@ -9,3 +9,7 @@ type TodosResponseDto struct {
 type TodoCreateRequestDto struct {
 	Content string `json:"content"`
 }
+
+type TodoResponseDto struct {
+	Data models.Todo `json:"data"`
+}

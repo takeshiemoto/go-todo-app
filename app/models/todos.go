@@ -1,6 +1,7 @@
 package models
 
 import (
+	"database/sql"
 	"log"
 	"time"
 )
@@ -22,10 +23,13 @@ func (u *User) CreateTodo(content string) (err error) {
 }
 
 func GetTodo(id int) (todo Todo, err error) {
-	cmd := `SELECT id, content, user_id, created_at from todos where id = ?`
+	cmd := `SELECT id, content, user_id, created_at FROM todos WHERE id = ?`
 	todo = Todo{}
 
 	err = Db.QueryRow(cmd, id).Scan(&todo.ID, &todo.Content, &todo.UserID, &todo.CreatedAt)
+	if err == sql.ErrNoRows {
+		return todo, err
+	}
 
 	return todo, err
 }

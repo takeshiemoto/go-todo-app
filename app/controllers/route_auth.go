@@ -10,12 +10,6 @@ import (
 )
 
 func signup(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		w.WriteHeader(http.StatusMethodNotAllowed)
-
-		return
-	}
-
 	body := make([]byte, r.ContentLength)
 	r.Body.Read(body)
 	var signUpRequestDto dto.SignUpRequestDto
@@ -43,12 +37,6 @@ func signup(w http.ResponseWriter, r *http.Request) {
 }
 
 func signin(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		w.WriteHeader(http.StatusMethodNotAllowed)
-
-		return
-	}
-
 	body := make([]byte, r.ContentLength)
 	r.Body.Read(body)
 	var signInDto dto.SignInRequestDto
@@ -109,12 +97,6 @@ func signin(w http.ResponseWriter, r *http.Request) {
 }
 
 func signout(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		w.WriteHeader(http.StatusMethodNotAllowed)
-
-		return
-	}
-
 	cookie, err := r.Cookie("_cookie")
 	if err != nil {
 		log.Println(err)

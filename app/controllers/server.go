@@ -5,6 +5,8 @@ import (
 	"go-todo-app/app/models"
 	"go-todo-app/config"
 	"net/http"
+
+	"github.com/gorilla/mux"
 )
 
 func session(w http.ResponseWriter, r *http.Request) (session models.Session, err error) {
@@ -20,11 +22,15 @@ func session(w http.ResponseWriter, r *http.Request) (session models.Session, er
 }
 
 func StartMainServer() error {
-	http.HandleFunc("/signup", signup)
-	http.HandleFunc("/signin", signin)
-	http.HandleFunc("/signout", signout)
+	r := mux.NewRouter()
+	r.HandleFunc("/signup", signup).Methods(http.MethodPost)
+	r.HandleFunc("/signin", signin).Methods(http.MethodPost)
+	r.HandleFunc("/signout", signout).Methods(http.MethodPost)
 
-	http.HandleFunc("/todos", todoHandler)
+	r.HandleFunc("/todos", todoHandler).Methods(http.MethodGet, http.MethodPost)
+	r.HandleFunc("/todos/{id}", todoIdHandler).Methods(http.MethodGet, http.MethodPatch, http.MethodDelete)
 
-	return http.ListenAndServe(":"+config.Config.Port, nil)
+	r.Handle("/", r)
+
+	return http.ListenAndServe(":"+config.Config.Port, r)
 }

@@ -29,8 +29,7 @@ func todoIdHandler(w http.ResponseWriter, r *http.Request) {
 	case http.MethodGet:
 		getTodoById(w, r)
 	case http.MethodPatch:
-		w.WriteHeader(http.StatusNotFound)
-		return
+		updateTodo(w, r)
 	case http.MethodDelete:
 		w.WriteHeader(http.StatusNotFound)
 		return
@@ -81,7 +80,13 @@ func getTodos(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	fmt.Fprint(w, string(j))
+	_, err = fmt.Fprint(w, string(j))
+	if err != nil {
+		log.Println(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+
+		return
+	}
 
 	return
 }
@@ -95,7 +100,13 @@ func postTodo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	body := make([]byte, r.ContentLength)
-	r.Body.Read(body)
+	_, err = r.Body.Read(body)
+	if err != nil {
+		log.Println(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+
+		return
+	}
 
 	var requestDto dto.TodoCreateRequestDto
 
@@ -169,7 +180,89 @@ func getTodoById(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	fmt.Fprint(w, string(j))
+	_, err = fmt.Fprint(w, string(j))
+	if err != nil {
+		log.Println(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+
+		return
+	}
+
+	return
+}
+
+func updateTodo(w http.ResponseWriter, r *http.Request) {
+
+	vars := mux.Vars(r)
+	id, err := strconv.Atoi(vars["id"])
+	if err != nil {
+		w.WriteHeader(http.StatusNotFound)
+
+		return
+	}
+
+	s, err := session(w, r)
+	if err != nil {
+		w.WriteHeader(http.StatusUnauthorized)
+
+		return
+	}
+
+	u, err := s.GetUserBySession()
+	if err != nil {
+		log.Println(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+
+		return
+	}
+
+	body := make([]byte, r.ContentLength)
+	_, err = r.Body.Read(body)
+	if err != nil {
+		log.Println(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+
+		return
+	}
+
+	var requestDto dto.TodoUpdateRequestDto
+
+	err = json.Unmarshal(body, &requestDto)
+	if err != nil {
+		log.Println(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+
+		return
+	}
+
+	t, err := models.GetTodo(id)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			w.WriteHeader(http.StatusNotFound)
+
+			return
+		}
+
+		log.Println(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+
+		return
+	}
+	if t.UserID != u.ID {
+		w.WriteHeader(http.StatusNotFound)
+
+		return
+	}
+
+	t.Content = requestDto.Content
+
+	err = t.UpdateTodo()
+	if err != nil {
+		log.Println(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+
+		return
+	}
 
 	return
 }

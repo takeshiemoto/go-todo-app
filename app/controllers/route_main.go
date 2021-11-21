@@ -31,8 +31,7 @@ func todoIdHandler(w http.ResponseWriter, r *http.Request) {
 	case http.MethodPatch:
 		updateTodo(w, r)
 	case http.MethodDelete:
-		w.WriteHeader(http.StatusNotFound)
-		return
+		deleteTodo(w, r)
 	default:
 		w.WriteHeader(http.StatusMethodNotAllowed)
 	}
@@ -192,18 +191,17 @@ func getTodoById(w http.ResponseWriter, r *http.Request) {
 }
 
 func updateTodo(w http.ResponseWriter, r *http.Request) {
+	s, err := session(w, r)
+	if err != nil {
+		w.WriteHeader(http.StatusUnauthorized)
+
+		return
+	}
 
 	vars := mux.Vars(r)
 	id, err := strconv.Atoi(vars["id"])
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
-
-		return
-	}
-
-	s, err := session(w, r)
-	if err != nil {
-		w.WriteHeader(http.StatusUnauthorized)
 
 		return
 	}
@@ -257,6 +255,60 @@ func updateTodo(w http.ResponseWriter, r *http.Request) {
 	t.Content = requestDto.Content
 
 	err = t.UpdateTodo()
+	if err != nil {
+		log.Println(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+
+		return
+	}
+
+	return
+}
+
+func deleteTodo(w http.ResponseWriter, r *http.Request) {
+	s, err := session(w, r)
+	if err != nil {
+		w.WriteHeader(http.StatusUnauthorized)
+
+		return
+	}
+
+	vars := mux.Vars(r)
+	id, err := strconv.Atoi(vars["id"])
+	if err != nil {
+		w.WriteHeader(http.StatusNotFound)
+
+		return
+	}
+
+	u, err := s.GetUserBySession()
+	if err != nil {
+		log.Println(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+
+		return
+	}
+
+	t, err := models.GetTodo(id)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			w.WriteHeader(http.StatusNotFound)
+
+			return
+		}
+
+		log.Println(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+
+		return
+	}
+	if t.UserID != u.ID {
+		w.WriteHeader(http.StatusNotFound)
+
+		return
+	}
+
+	err = t.DeleteTodo()
 	if err != nil {
 		log.Println(err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
